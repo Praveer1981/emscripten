@@ -457,24 +457,15 @@ fi
     assert not os.path.exists(EMCC_CACHE)
 
     with env_modify({'EMCC_DEBUG': '1'}):
-      # Building a file that *does* need something *should* trigger cache
+      # Building a file that needs something should trigger cache
       # generation, but only the first time
-      for filename, libname in [('hello_libcxx.cpp', 'libc++')]:
-        for i in range(3):
-          print(filename, libname, i)
-          self.clear()
-          output = self.do([EMCC, '-O' + str(i), '-s', '--llvm-lto', '0', path_from_root('tests', filename), '--save-bc', 'a.bc', '-s', 'DISABLE_EXCEPTION_CATCHING=0'])
-          # print '\n\n\n', output
-          assert INCLUDING_MESSAGE.replace('X', libname) in output
-          if libname == 'libc':
-            assert INCLUDING_MESSAGE.replace('X', 'libc++') not in output # we don't need libc++ in this code
-          else:
-            assert INCLUDING_MESSAGE.replace('X', 'libc') in output # libc++ always forces inclusion of libc
-          assert (BUILDING_MESSAGE.replace('X', libname) in output) == (i == 0), 'Must only build the first time'
-          self.assertContained('hello, world!', run_js('a.out.js'))
-          assert os.path.exists(EMCC_CACHE)
-          full_libname = libname + '.bc' if libname != 'libc++' else libname + '.a'
-          assert os.path.exists(os.path.join(EMCC_CACHE, full_libname))
+      for i in range(3):
+        self.clear()
+        output = self.do([EMCC, '-O' + str(i), path_from_root('tests', 'hello_world.cpp'), '--save-bc', 'a.bc', '-s', 'DISABLE_EXCEPTION_CATCHING=0'])
+        # print '\n\n\n', output
+        assert (BUILDING_MESSAGE.replace('X', 'libc') in output) == (i == 0), 'Must only build the first time'
+        self.assertContained('hello, world!', run_js('a.out.js'))
+        assert os.path.exists(EMCC_CACHE)
 
     try_delete(CANONICAL_TEMP_DIR)
     restore_and_set_up()
